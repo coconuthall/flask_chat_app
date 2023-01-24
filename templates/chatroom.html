@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room {{room}}</title>
+</head>
+<body>
+    <h1>Welcome to the chat room {{room}}, {{username}}</h1>
+    <div id="messages"></div>
+    <form id="message_form">
+        <div>
+            <input type="text" name="message_input" id="message_input" placeholder="Enter your message">
+            <input type="submit" value="Send message">
+        </div>
+    </form>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+<script type="text/javascript" charset="utf-8">
+    function append_message(message){
+        const node = document.createElement('div');
+        node.innerHTML = message;
+        document.getElementById('messages').appendChild(node);
+    };
+    var socket = io();
+    socket.on('connect', function() {
+        socket.emit('join_room', {username: '{{ username }}', room: '{{ room }}'});
+        var message_input = document.getElementById('message_input');
+        document.getElementById('message_form').onsubmit = function(e){
+            e.preventDefault();
+            var message = message_input.value.trim();
+            if (message.length){
+                socket.emit('send_message', {
+                    username: '{{ username }}',
+                    room: '{{ room }}',
+                    message: message
+                })
+            }
+            message_input.value = '';
+            message_input.focus();
+        };
+    });
+    window.onbeforeunload = function(e) {
+        e.returnValue = 'onbeforeunload';
+        socket.emit('leave_room', {
+            username: "{{ username }}",
+            room: "{{ room }}"
+        })
+    };
+    socket.on('join_room_announcement', function(data) {
+        append_message(`<b>${data.username}</b> has joined the room`);
+    });
+
+    socket.on('receive_message', function(data) {
+        append_message(`<b>${data.username}</b>: ${data.message}`);
+    });
+    socket.on('leave_room_announcement', function(data){
+        append_message(`<b>${data.username}</b> has left the room`);
+    });
+    
+
+</script>
+</html>
